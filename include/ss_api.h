@@ -98,6 +98,10 @@ namespace ss_api {
 
         static void printe(int code, int delay);
 
+        static int getCharacterBytes(unsigned char firstByte);
+
+        static uint32_t GetNextUnicode(const unsigned char *&str);
+
         static std::string ss_devid;
         static std::string ss_devpassword;
         static std::string ss_softname;

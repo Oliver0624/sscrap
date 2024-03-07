@@ -26,6 +26,8 @@ static int parsePlayerString(const std::string &players) {
         return 6;
     } else if (players == "1-8") {
         return 8;
+    } else if (players == "1-9") {
+        return 9;
     } else if (players == "2") {
         return 2;
     } else if (players == "2-4") {
@@ -242,8 +244,8 @@ bool Game::parseGame(Game *game, tinyxml2::XMLNode *gameNode, const std::string 
     } else {
         game->date = Api::getXmlTextStr(gameNode->FirstChildElement("releasedate"));
     }
-    if (game->date.size() >= 4) {
-        game->date = game->date.substr(0, 4);
+    if (game->date.size() > 8) { // should show month and day
+        game->date = game->date.substr(0, 8);
     } else if (game->date.empty()) {
         game->date = "UNKNOWN";
     }

@@ -2,6 +2,8 @@
 // Created by cpasjuste on 03/12/2019.
 //
 
+#include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <cmath>
 
@@ -10,6 +12,111 @@
 
 using namespace ss_api;
 
+std::unordered_map<uint32_t, std::string> GameList::prons;
+
+bool GameList::loadPronCN(const std::string &filepath)
+{
+    std::ifstream file;
+
+    file.open(filepath.c_str(), std::ios::in);
+    if (!file.is_open()) {
+        return -1;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string utf8codeStr, cn_pron;
+        if (getline(iss, utf8codeStr, ',') >> cn_pron) {
+            size_t pos;
+            uint32_t utf8code = std::stoul(utf8codeStr, &pos, 16);
+            if (pos == utf8codeStr.length()) {
+                prons.emplace(utf8code, cn_pron);
+            }
+        }
+    }
+
+    file.close();
+    return 0;
+}
+
+bool GameList::sortGameByName(const Game &g1, const Game &g2) {
+    auto lhs = reinterpret_cast<const unsigned char*>(g1.name.c_str());
+    auto rhs = reinterpret_cast<const unsigned char*>(g2.name.c_str());
+    auto lhs_end = lhs + g1.name.size();
+    auto rhs_end = rhs + g2.name.size();
+    bool first_byte = true;
+
+    do {
+        if (*lhs != 0 && *rhs != 0) {
+            // always sort to last if first byte is '['
+            //if (0 == llen && 0 == rlen)
+            if (first_byte)
+            {
+                if (*lhs == '[' && *rhs != '[') {
+                    return false;
+                } else if (*lhs != '[' && *rhs == '[') {
+                    return true;
+                }
+                first_byte = false;
+            }
+
+            const auto lchar = Api::GetNextUnicode(lhs);
+            const auto rchar = Api::GetNextUnicode(rhs);
+
+            if (lchar != 0 && rchar != 0) {
+                if (lchar <= 0x7F && rchar <= 0x7F) { // compare by latin
+                    if (tolower(lchar) < tolower(rchar)) {
+                        return true;
+                    } else if (tolower(lchar) > tolower(rchar)) {
+                        return false;
+                    }
+                } else if (lchar <= 0x7F && rchar > 0x7F) { // latin always in front of Chinese
+                    return true;
+                } else if (lchar > 0x7F && rchar <= 0x7F) {
+                    return false;
+                } else { // lchar > 0x7F && rchar > 0x7F   // try to compare by Chinese
+                    const auto lpron = prons.find(lchar);
+                    const auto rpron = prons.find(rchar);
+
+                    if (lpron != prons.cend() && rpron != prons.cend()) { // compare by pinyin
+                        int pron_result = strcmp(lpron->second.c_str(), rpron->second.c_str());
+                        if (pron_result < 0) {
+                            return true;
+                        } else if (pron_result > 0) {
+                            return false;
+                        }
+                    } else if (lpron != prons.cend() && rpron == prons.cend()) {    // Chinese always in front of other language
+                        return true;
+                    } else if (lpron == prons.cend() && rpron != prons.cend()) {
+                        return false;
+                    } else { // lpron == prons.cend() && rpron == prons.cend()  // both are unsupported language, compare by Unicode
+                        if (lchar < rchar) {
+                            return true;
+                        } else if (lchar > rchar) {
+                            return false;
+                        }
+                    }
+                }
+            } else if (lchar != 0 && rchar == 0) { // legal always in front of illegal
+                return true;
+            } else if (lchar == 0 && rchar != 0) {
+                return false;
+            } else { // all illegal, dont swap
+                return true;
+            }
+        } else if (*lhs == 0 && *rhs != 0) { // short always in front of long
+            return true;
+        } else if (*lhs != 0 && *rhs == 0) {
+            return false;
+        } else { // *lhs == 0 && *rhs == 0  // string is equal
+            return true;
+        }
+    } while (lhs < lhs_end && rhs < rhs_end);
+
+    return true;
+}
+// OLIVER very important
 bool GameList::append(const std::string &xmlPath, const std::string &rPath, bool sort,
                       const std::vector<std::string> &filters, const System &system, bool availableOnly) {
     tinyxml2::XMLDocument doc;
@@ -115,7 +222,11 @@ bool GameList::append(const std::string &xmlPath, const std::string &rPath, bool
 
             it2 = std::find(dates.begin(), dates.end(), game.date);
             if (it2 == dates.end()) {
-                dates.emplace_back(game.date);
+                if (game.date.size() > 4) {
+                    dates.emplace_back(game.date.substr(0, 4));
+                } else {
+                    dates.emplace_back(game.date);
+                }
             }
 
             // add game to game list
@@ -153,7 +264,7 @@ void GameList::sortAlpha(bool byZipName, bool gamesOnly) {
     if (byZipName) {
         std::sort(games.begin(), games.end(), Api::sortGameByPath);
     } else {
-        std::sort(games.begin(), games.end(), Api::sortGameByName);
+        std::sort(games.begin(), games.end(), GameList::sortGameByName);
     }
 
     // sort lists

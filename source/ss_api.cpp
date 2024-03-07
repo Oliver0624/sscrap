@@ -266,3 +266,51 @@ void Api::printe(int code, int delay) {
         printc(COLOR_O, "NOK: timeout reached... retrying in %i seconds\n", delay);
     }
 }
+
+
+int Api::getCharacterBytes(unsigned char firstByte)
+{
+    if (firstByte <= 0x7F) {
+        return 1;
+    } else if ((firstByte & 0xE0) == 0xC0) {
+        return 2;
+    } else if ((firstByte & 0xF0) == 0xE0) {
+        return 3;
+    } else if ((firstByte & 0xF8) == 0xF0) {
+        return 4;
+    } else if ((firstByte & 0xFC) == 0xF8) {
+        return 5;
+    } else if ((firstByte & 0xFE) == 0xFC) {
+        return 6;
+    }
+    return 0;
+}
+
+uint32_t Api::GetNextUnicode(const unsigned char *&str)
+{
+    const unsigned char utf8_first_mask[] = { 0x7F, 0x1F, 0x0F, 0x07, 0x03, 0x01 };
+
+    int len = Api::getCharacterBytes(*str);
+    if (len <= 0) {
+        str += 1;  // skip this byte
+        return 0;
+    }
+
+    uint32_t code = 0;
+    for (int i = 0; i < len; i++) {
+        if (*str == 0) {
+            str += (i + 1); // skip to next possible position
+            return 0;
+        }
+
+        code <<= 6;
+        if (i == 0) {
+            code |= (*str & utf8_first_mask[len-1]);
+        } else {
+            code |= (*str & 0x3F);
+        }        
+        str++;
+    }
+
+    return code;
+}
