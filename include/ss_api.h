@@ -102,9 +102,16 @@ namespace ss_api {
 
         static uint32_t GetNextUnicode(const unsigned char *&str);
 
+        static bool loadPronCN(const std::string &filepath);
+
+        static bool sortGameByNameUnicode(const Game &g1, const Game &g2);
+
         static std::string ss_devid;
         static std::string ss_devpassword;
         static std::string ss_softname;
+
+    private:
+        static std::vector<uint16_t> ss_vecCnSeqUnicode;
     };
 }
 

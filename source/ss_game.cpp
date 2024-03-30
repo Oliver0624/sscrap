@@ -45,7 +45,7 @@ static int parsePlayerString(const std::string &players) {
     }
 
     // UNKNOWN
-    return 1;
+    return 0;  // OLIVER : editted from 1
 }
 
 Game::Media Game::getMedia(const std::string &type) const {
@@ -259,6 +259,11 @@ bool Game::parseGame(Game *game, tinyxml2::XMLNode *gameNode, const std::string 
         game->developer.name = Api::getXmlTextStr(gameNode->FirstChildElement("developer"));
     }
 
+    if (game->developer.name.empty()) {
+        game->developer.id = 0;
+        game->developer.name = "UNKNOWN";
+    }
+
     // game editor
     if (format == GameList::Format::ScreenScraper) {
         game->editor.id = Api::getXmlAttrInt(gameNode->FirstChildElement("editeur"), "id");
@@ -266,6 +271,11 @@ bool Game::parseGame(Game *game, tinyxml2::XMLNode *gameNode, const std::string 
     } else {
         game->editor.id = Api::getXmlAttrInt(gameNode->FirstChildElement("publisher"), "id");
         game->editor.name = Api::getXmlTextStr(gameNode->FirstChildElement("publisher"));
+    }
+
+    if (game->editor.name.empty()) {
+        game->editor.id = 0;
+        game->editor.name = "UNKNOWN";
     }
 
     // game genre
@@ -301,6 +311,11 @@ bool Game::parseGame(Game *game, tinyxml2::XMLNode *gameNode, const std::string 
     } else {
         game->players = Api::getXmlTextStr(gameNode->FirstChildElement("players"));
     }
+
+    if (game->players.empty()) {
+        game->players = "UNKNOWN";
+    }
+
     game->playersInt = parsePlayerString(game->players);
 
     // game rotation

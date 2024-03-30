@@ -23,8 +23,6 @@ namespace ss_api {
 
         GameList() = default;
 
-        bool loadPronCN(const std::string &filepath);
-
         static bool sortGameByName(const Game &g1, const Game &g2);
 
         bool append(const std::string &xmlPath, const std::string &romPath = "", bool sort = true,
@@ -89,9 +87,6 @@ namespace ss_api {
         std::vector<int> rotations;
         std::vector<std::string> resolutions;
         std::vector<std::string> dates;
-    
-    private:
-        static std::unordered_map<uint32_t, std::string> prons;
     };
 }
 
