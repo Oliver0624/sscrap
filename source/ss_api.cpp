@@ -380,8 +380,8 @@ bool Api::sortGameByNameUnicode(const Game &g1, const Game &g2) {
                 } else if (lchar > 0x7F && rchar <= 0x7F) {
                     return false;
                 } else { // lchar > 0x7F && rchar > 0x7F   // try to compare by Chinese
-                    uint16_t lseq = lchar;
-                    uint16_t rseq = rchar;
+                    uint16_t lseq = -1;
+                    uint16_t rseq = -1;
 
                     if (lchar >= CN_UNICODE_START && lchar - CN_UNICODE_START < ss_vecCnSeqUnicode.size()) {
                         lseq = ss_vecCnSeqUnicode[lchar - CN_UNICODE_START];
@@ -395,7 +395,23 @@ bool Api::sortGameByNameUnicode(const Game &g1, const Game &g2) {
                         rseq = CN_UNICODE_0X_3007_SEQ;
                     }
 
-                    return (lseq < rseq);
+                    if (lseq != -1 && rseq != -1) {
+                        if (lseq < rseq) {
+                            return true;
+                        } else if (lseq > rseq) {
+                            return false;
+                        }
+                    } else if (lseq != -1 && rseq == -1) {
+                        return true;
+                    } else if (lseq == -1 && rseq != -1) {
+                        return false;
+                    }
+                    
+                    if (lchar < rchar) {
+                        return true;
+                    } else if (lchar > rchar) {
+                        return false;
+                    }
                 }
             } else if (lchar != 0 && rchar == 0) { // legal always in front of illegal
                 return true;
